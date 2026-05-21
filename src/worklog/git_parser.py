@@ -26,8 +26,8 @@ def parse_commits(
         start = target_date
         end = target_date
 
-    since = start.strftime("%Y-%m-%d")
-    until = (end + timedelta(days=1)).strftime("%Y-%m-%d")
+    since = start.strftime("%Y-%m-%dT00:00:00")
+    until = (end + timedelta(days=1)).strftime("%Y-%m-%dT00:00:00")
 
     grouped: dict[str, list[Commit]] = {}
 

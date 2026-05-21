@@ -144,6 +144,43 @@ def submit_weekly_report(config, entries: list[dict]) -> bool:
     return bool(data and data.get("ok"))
 
 
+def get_existing_weekly_task_ids(config) -> set[str]:
+    """Get task IDs already submitted in this week's report."""
+    friday = get_week_friday()
+    friday_ts = int(friday.strftime("%s")) * 1000
+
+    data = _run_lark_cli([
+        "base", "+record-list",
+        "--base-token", config.feishu_base_token,
+        "--table-id", config.feishu_weekly_table,
+        "--limit", "200",
+        "--format", "json",
+    ])
+    if not data or not data.get("ok"):
+        return set()
+
+    fields = data["data"].get("fields", [])
+    rows = data["data"].get("data", [])
+
+    period_idx = fields.index("周期") if "周期" in fields else -1
+    task_idx = fields.index("✅  任务") if "✅  任务" in fields else -1
+    creator_idx = fields.index("创建人") if "创建人" in fields else -1
+
+    existing_ids = set()
+    for row in rows:
+        period_raw = row[period_idx] if period_idx >= 0 else None
+        if not period_raw:
+            continue
+        # period can be timestamp string like "2026-05-22 00:00:00" or int
+        period_str = str(period_raw)[:10] if isinstance(period_raw, str) else ""
+        if isinstance(period_raw, str) and period_str == friday.isoformat():
+            task_links = row[task_idx] if task_idx >= 0 else []
+            if task_links:
+                for link in task_links:
+                    existing_ids.add(link.get("id", ""))
+    return existing_ids
+
+
 def match_commits_to_tasks(grouped_commits: dict, tasks: list[FeishuTask], config) -> list[dict]:
     from .llm_formatter import _commits_to_text, _call_llm
 
@@ -165,7 +202,7 @@ def match_commits_to_tasks(grouped_commits: dict, tasks: list[FeishuTask], confi
    - 拼音首字母缩写：ybs → 影帮手，nzb → 牛主播，sljq → 算力计器
    - 语义关联：fix_payment → "支付"，home_page → "首页"
 2. 如果分支名包含 hotfix 或 fix（如 hotfix/xxx, fix_xxx），这是工单修复类工作，task_id 必须填 null，会自动新建任务到工单需求下。
-3. 对每条记录估算一个合理的人类工时（小时），填入 hours 字段。参考：小bug修复=0.5-1h，功能模块开发=4-8h，复杂功能=8-16h。
+3. 对每条记录估算一个合理的人类工时（小时），填入 hours 字段。工时要偏大估算，参考：小bug修复=1-2h，普通功能开发=8-12h，复杂功能/多模块联调=16-24h，大型功能完整开发=24-40h。
 4. 当任务名比较模糊时，优先匹配截止日期在本周（{monday} ~ {friday}）内的任务。截止日期越接近本周，匹配优先级越高。
 5. 多个分支的工作如果都属于同一个任务，合并为一条记录。
 

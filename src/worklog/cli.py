@@ -67,7 +67,7 @@ def feishu(config, requirement, yes):
     import sys
     from .feishu import (
         get_my_tasks, match_commits_to_tasks, create_task,
-        submit_weekly_report, get_week_friday,
+        submit_weekly_report, get_week_friday, get_existing_weekly_task_ids,
     )
 
     cfg = Config.load(config)
@@ -100,6 +100,18 @@ def feishu(config, requirement, yes):
     if not matches:
         click.echo("匹配失败，请检查 LLM 配置。")
         return
+
+    # 去重：检查本周已提交的周报记录
+    existing_task_ids = get_existing_weekly_task_ids(cfg)
+    if existing_task_ids:
+        before = len(matches)
+        matches = [m for m in matches if m.get("task_id") not in existing_task_ids]
+        skipped = before - len(matches)
+        if skipped:
+            click.echo(f"已跳过 {skipped} 条本周已提交的记录")
+        if not matches:
+            click.echo("本周周报已全部提交，无需重复操作。")
+            return
 
     click.echo(f"\n{'='*50}")
     click.echo("周报预览：")

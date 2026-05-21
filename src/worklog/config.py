@@ -27,6 +27,7 @@ class Config:
     feishu_task_table: str = ""
     feishu_weekly_table: str = ""
     feishu_member_id: str = ""
+    feishu_creator_name: str = ""
     feishu_default_requirement_id: str = ""
 
     @classmethod
@@ -66,6 +67,7 @@ class Config:
             feishu_task_table=feishu.get("task_table", ""),
             feishu_weekly_table=feishu.get("weekly_table", ""),
             feishu_member_id=feishu.get("member_id", ""),
+            feishu_creator_name=feishu.get("creator_name", ""),
             feishu_default_requirement_id=feishu.get("default_requirement_id", ""),
         )
 

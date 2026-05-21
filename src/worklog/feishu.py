@@ -154,7 +154,7 @@ def get_existing_weekly_task_ids(config) -> set[str]:
         "--base-token", config.feishu_base_token,
         "--table-id", config.feishu_weekly_table,
         "--json", json.dumps({
-            "keyword": "马俊",
+            "keyword": config.feishu_creator_name,
             "search_fields": ["创建人"],
         }),
         "--format", "json",

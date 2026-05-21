@@ -22,6 +22,12 @@ class Config:
     webhook_url: str = ""
     tone: str = "professional"
     language: str = "zh-CN"
+    # feishu
+    feishu_base_token: str = ""
+    feishu_task_table: str = ""
+    feishu_weekly_table: str = ""
+    feishu_member_id: str = ""
+    feishu_default_requirement_id: str = ""
 
     @classmethod
     def load(cls, path: Path | str | None = None) -> "Config":
@@ -44,6 +50,7 @@ class Config:
         repos = data.get("repos", {})
         push = data.get("push", {})
         style = data.get("style", {})
+        feishu = data.get("feishu", {})
 
         return cls(
             llm_endpoint=general.get("llm_endpoint", cls.llm_endpoint),
@@ -55,6 +62,11 @@ class Config:
             webhook_url=push.get("webhook_url", ""),
             tone=style.get("tone", "professional"),
             language=style.get("language", "zh-CN"),
+            feishu_base_token=feishu.get("base_token", ""),
+            feishu_task_table=feishu.get("task_table", ""),
+            feishu_weekly_table=feishu.get("weekly_table", ""),
+            feishu_member_id=feishu.get("member_id", ""),
+            feishu_default_requirement_id=feishu.get("default_requirement_id", ""),
         )
 
     @property

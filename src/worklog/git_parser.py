@@ -11,6 +11,7 @@ class Commit:
     author: str
     date: datetime
     repo_name: str
+    branch: str = ""
 
 
 def parse_commits(
@@ -44,11 +45,70 @@ def parse_commits(
     return grouped
 
 
+def _get_branches(repo_path: Path) -> dict[str, str]:
+    """Get a mapping of commit hash -> branch name."""
+    try:
+        result = subprocess.run(
+            ["git", "branch", "-a", "--format=%(refname:short) %(objectname:short)"],
+            cwd=repo_path, capture_output=True, text=True, timeout=10,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return {}
+
+    branch_map: dict[str, str] = {}
+    for line in result.stdout.strip().splitlines():
+        parts = line.rsplit(" ", 1)
+        if len(parts) == 2:
+            branch_map[parts[1]] = parts[0]
+    return branch_map
+
+
 def _get_commits(repo_path: Path, since: str, until: str) -> list[Commit]:
+    branches = _get_branch_commits(repo_path, since, until)
+
+    seen: dict[str, Commit] = {}
+    for branch, commits in branches.items():
+        for c in commits:
+            if c.hash not in seen:
+                c.branch = branch
+                seen[c.hash] = c
+            elif not seen[c.hash].branch or seen[c.hash].branch in ("master", "main"):
+                seen[c.hash].branch = branch
+
+    return sorted(seen.values(), key=lambda c: c.date, reverse=True)
+
+
+def _get_branch_commits(repo_path: Path, since: str, until: str) -> dict[str, list[Commit]]:
+    """Get commits grouped by branch."""
+    try:
+        result = subprocess.run(
+            ["git", "branch", "--format=%(refname:short)"],
+            cwd=repo_path, capture_output=True, text=True, timeout=10,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return {}
+
+    if result.returncode != 0:
+        return {}
+
+    branches_with_commits: dict[str, list[Commit]] = {}
+    for branch in result.stdout.strip().splitlines():
+        if not branch:
+            continue
+        commits = _get_commits_for_ref(repo_path, branch, since, until)
+        if commits:
+            branches_with_commits[branch] = commits
+
+    return branches_with_commits
+
+
+def _get_commits_for_ref(
+    repo_path: Path, ref: str, since: str, until: str
+) -> list[Commit]:
     try:
         result = subprocess.run(
             [
-                "git", "log", "--all",
+                "git", "log", ref,
                 f"--since={since}",
                 f"--until={until}",
                 "--format=%H|%s|%an|%aI",
@@ -78,6 +138,7 @@ def _get_commits(repo_path: Path, since: str, until: str) -> list[Commit]:
             author=parts[2],
             date=datetime.fromisoformat(parts[3]),
             repo_name=repo_path.name,
+            branch=ref,
         ))
 
     return commits

@@ -147,13 +147,16 @@ def submit_weekly_report(config, entries: list[dict]) -> bool:
 def get_existing_weekly_task_ids(config) -> set[str]:
     """Get task IDs already submitted in this week's report."""
     friday = get_week_friday()
-    friday_ts = int(friday.strftime("%s")) * 1000
+    friday_str = friday.strftime("%Y-%m-%d")
 
     data = _run_lark_cli([
-        "base", "+record-list",
+        "base", "+record-search",
         "--base-token", config.feishu_base_token,
         "--table-id", config.feishu_weekly_table,
-        "--limit", "200",
+        "--json", json.dumps({
+            "keyword": "马俊",
+            "search_fields": ["创建人"],
+        }),
         "--format", "json",
     ])
     if not data or not data.get("ok"):
@@ -164,20 +167,16 @@ def get_existing_weekly_task_ids(config) -> set[str]:
 
     period_idx = fields.index("周期") if "周期" in fields else -1
     task_idx = fields.index("✅  任务") if "✅  任务" in fields else -1
-    creator_idx = fields.index("创建人") if "创建人" in fields else -1
 
     existing_ids = set()
     for row in rows:
-        period_raw = row[period_idx] if period_idx >= 0 else None
-        if not period_raw:
+        period = row[period_idx] if period_idx >= 0 else None
+        if not period or friday_str not in str(period):
             continue
-        # period can be timestamp string like "2026-05-22 00:00:00" or int
-        period_str = str(period_raw)[:10] if isinstance(period_raw, str) else ""
-        if isinstance(period_raw, str) and period_str == friday.isoformat():
-            task_links = row[task_idx] if task_idx >= 0 else []
-            if task_links:
-                for link in task_links:
-                    existing_ids.add(link.get("id", ""))
+        task_links = row[task_idx] if task_idx >= 0 else []
+        if task_links:
+            for link in task_links:
+                existing_ids.add(link.get("id", ""))
     return existing_ids
 
 

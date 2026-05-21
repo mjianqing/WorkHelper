@@ -4,6 +4,8 @@
 
 ## 安装
 
+### macOS / Linux
+
 ```bash
 pip install git+https://github.com/mjianqing/WorkHelper.git
 ```
@@ -15,16 +17,43 @@ pip install git+https://github.com/mjianqing/WorkHelper.git
 > pip install git+https://github.com/mjianqing/WorkHelper.git
 > ```
 
+### Windows
+
+前提：已安装 [Python 3.11+](https://www.python.org/downloads/) 和 [Git](https://git-scm.com/download/win)。
+
+```powershell
+pip install git+https://github.com/mjianqing/WorkHelper.git
+```
+
+> 如果提示权限问题，使用虚拟环境：
+> ```powershell
+> python -m venv %USERPROFILE%\.worklog-venv
+> %USERPROFILE%\.worklog-venv\Scripts\activate
+> pip install git+https://github.com/mjianqing/WorkHelper.git
+> ```
+
 ## 配置
 
 ### 1. 设置 API 密钥
 
+**macOS / Linux：**
 ```bash
 echo 'export WORKLOG_API_KEY="你的API密钥"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-### 2. 创建配置文件 `~/.worklog.toml`
+**Windows（PowerShell）：**
+```powershell
+[Environment]::SetEnvironmentVariable("WORKLOG_API_KEY", "你的API密钥", "User")
+```
+
+设置后重启终端生效。
+
+### 2. 创建配置文件
+
+**macOS / Linux：** `~/.worklog.toml`
+
+**Windows：** `C:\Users\你的用户名\.worklog.toml`
 
 ```toml
 [general]
@@ -44,6 +73,16 @@ language = "zh-CN"
 ```
 
 将 `paths` 替换为你自己的 git 仓库路径。
+
+> Windows 用户路径示例：
+> ```toml
+> [repos]
+> paths = [
+>   "C:/Users/你的用户名/code/project-a",
+>   "D:/work/project-b",
+> ]
+> ```
+> 用正斜杠 `/` 即可，不需要反斜杠。
 
 ## 使用
 

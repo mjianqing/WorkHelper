@@ -89,8 +89,14 @@ def _commits_to_text(grouped_commits: dict[str, list[Commit]]) -> str:
     lines = []
     for repo_name, commits in grouped_commits.items():
         lines.append(f"## {repo_name}")
+        by_branch: dict[str, list[Commit]] = {}
         for c in commits:
-            lines.append(f"- {c.message} ({c.hash})")
+            branch = c.branch or "unknown"
+            by_branch.setdefault(branch, []).append(c)
+        for branch, branch_commits in by_branch.items():
+            lines.append(f"  [分支: {branch}]")
+            for c in branch_commits:
+                lines.append(f"  - {c.message} ({c.hash})")
         lines.append("")
     return "\n".join(lines)
 
@@ -126,7 +132,7 @@ def _call_anthropic(prompt: str, config: Config) -> str:
     )
     response = client.messages.create(
         model=config.llm_model,
-        max_tokens=2048,
+        max_tokens=8192,
         messages=[{"role": "user", "content": prompt}],
     )
     for block in response.content:

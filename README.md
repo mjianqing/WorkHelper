@@ -70,6 +70,15 @@ paths = [
 [style]
 tone = "professional"
 language = "zh-CN"
+
+# 飞书周报自动化（可选，仅 worklog feishu 需要）
+[feishu]
+base_token = "你的多维表格 app_token"
+task_table = "任务表 table_id"
+weekly_table = "周报表 table_id"
+member_id = "你的飞书 open_id"
+creator_name = "你在飞书中的姓名"
+default_requirement_id = "默认需求工单的 record_id"
 ```
 
 将 `paths` 替换为你自己的 git 仓库路径。
@@ -101,7 +110,27 @@ worklog push
 
 # 生成并推送到 webhook
 worklog push --webhook
+
+# 自动生成并提交本周飞书周报（需先配置 [feishu] 段）
+worklog feishu
+
+# 跳过预览确认直接提交
+worklog feishu -y
+
+# 为新建任务指定关联的需求工单
+worklog feishu -r <requirement_record_id>
 ```
+
+### 飞书周报自动化（`worklog feishu`）
+
+把本周 git commits 自动整理成飞书多维表格周报：
+
+1. 拉取本周所有仓库的 commits；
+2. 拉取你在飞书任务表中进行中的任务；
+3. 通过 LLM 把 commits 匹配到对应任务，并生成周报内容、状态、工时；
+4. 打印预览，确认后写入周报表；未匹配到的 commits 会自动建任务（hotfix 自动关联默认工单需求）。
+
+内置去重：同一周内已提交过的任务会自动跳过，可以反复执行而不会产生重复记录。
 
 ## 配置说明
 
@@ -113,6 +142,12 @@ worklog push --webhook
 | `repos.paths` | Git 仓库路径列表 | 支持 `~` 展开 |
 | `style.tone` | 翻译风格 | `professional` / `casual` |
 | `style.language` | 输出语言 | `zh-CN` / `en` 等 |
+| `feishu.base_token` | 飞书多维表格 app_token | 仅 `worklog feishu` 需要 |
+| `feishu.task_table` | 任务表 table_id | 用于读取进行中的任务 |
+| `feishu.weekly_table` | 周报表 table_id | 用于写入和去重周报记录 |
+| `feishu.member_id` | 你的飞书 open_id | 用于过滤本人任务 |
+| `feishu.creator_name` | 你在飞书中的姓名 | 用于按创建人去重本周记录 |
+| `feishu.default_requirement_id` | 默认需求工单 record_id | hotfix / 未指定 `-r` 时使用 |
 
 ## 工作原理
 
